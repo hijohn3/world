@@ -22,6 +22,17 @@ def getIP(ipheader):
     dest_ip = inet_ntoa(ipheader[9])
     return (src_ip, dest_ip)
 
+def getIPHeaderLen(ipheader):
+    ipheaderlen = ipheader[0] & 0x0f
+    ipheaderlen *= 4
+    return ipheaderlen
+
+def getTypeCode(icmp):
+    icmpheader = struct.unpack('!BB', icmp[:2])
+    icmp_type = icmpheader[0]
+    icmp_code = icmpheader[1]
+    return (icmp_type, icmp_code)
+
 def recvData(sock):
     data = ''
     try:
@@ -45,9 +56,14 @@ def sniffing(host):
         while True:
             data = recvData(sniffer)
             ipheader = parse_ipheader(data[:20])
+            ipheaderlen = getIPHeaderLen(ipheader)
             datagramSize = getDatagramSize(ipheader)
             protocol = getProtocol(ipheader)
             src_ip, dest_ip = getIP(ipheader)
+            if protocol == 'ICMP':
+                offset = ipheaderlen
+                icmp_type, icmp_code = getTypeCode(data[offset:])
+                print(f'{src_ip} -> {dest_ip} : Type[{icmp_type}], Code[{icmp_code}]')
             print(f'SNIFFED [{count}] -------------')
             print(f'Datagram Size : {datagramSize}')
             print(f'Protocol : {protocol}')
